@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>saif-Fantasy</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦁</text></svg>">
-    <title>saif-Fantasy managment</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Global Styles & Colors */
@@ -464,7 +465,7 @@
     </div>
 
     <script>
-
+        // --- PROPER LIVE SUPABASE CREDENTIALS ---
         const SUPABASE_URL = 'https://toqgbzzxzauibunmwbow.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcWdienp4emF1aWJ1bm13Ym93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3OTA0NDksImV4cCI6MjA5NzM2NjQ0OX0.6VgRp3jtkdIhafJm7PXmH8Xh7Pql7LbI8f1ioSXQgYI';
 
@@ -509,9 +510,7 @@
             }
         };
 
-        // Fetch Live Setup State from Cloud
         async function loadDataFromSupabase() {
-            // 1. Fetch Sessions
             const { data: sessionData, error: sErr } = await supabase.from('sessions').select('*');
             if (!sErr && sessionData) {
                 sessionData.forEach(row => {
@@ -528,7 +527,6 @@
                 });
             }
 
-            // Fill empty local tracking states if cloud values aren't created yet
             CONSOLES.forEach(c => {
                 if(!sessions[c.id]) {
                     sessions[c.id] = { 
@@ -539,7 +537,6 @@
                 }
             });
 
-            // 2. Fetch Financial Ledger Logs
             const { data: finData, error: fErr } = await supabase.from('financial_data').select('*');
             if (!fErr && finData) {
                 financialData = finData.map(row => ({
@@ -601,6 +598,7 @@
             clearInterval(timerInterval);
         }
 
+        // --- UPDATED FOR AUTOMATIC BACKGROUND REALTIME LISTENING ---
         function showApp() {
             document.getElementById('login-view').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
@@ -611,6 +609,24 @@
             startTimerLoop();
             updateUI();
             updateFinanceUI();
+
+            // Auto-Sync 1: Listen for modifications on consoles
+            supabase
+                .channel('schema-db-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, async (payload) => {
+                    await loadDataFromSupabase();
+                    updateUI();
+                })
+                .subscribe();
+
+            // Auto-Sync 2: Listen for additions on checkout/finances
+            supabase
+                .channel('finance-db-changes')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'financial_data' }, async (payload) => {
+                    await loadDataFromSupabase();
+                    updateFinanceUI();
+                })
+                .subscribe();
         }
 
         function switchTab(tab) {
@@ -721,7 +737,6 @@
 
             updateUI();
 
-            // Cloud Save
             await supabase.from('sessions').update({
                 active: true,
                 mode: mode,
@@ -744,7 +759,6 @@
             
             updateUI();
 
-            // Cloud Save
             await supabase.from('sessions').update({
                 current_player_mode: sess.currentPlayerMode,
                 segments: sess.segments
@@ -760,7 +774,6 @@
             
             updateUI();
 
-            // Cloud Clean Reset
             await supabase.from('sessions').update({
                 active: false,
                 mode: null,
@@ -928,7 +941,6 @@
             sess.drinks[drinkKey] = newQty;
             renderDrinksList();
 
-            // Cloud Save target row updates safely
             await supabase.from('sessions').update({ drinks: sess.drinks }).eq('id', currentDrinksSessionId);
         }
 
@@ -951,7 +963,6 @@
             priceInput.value = '';
             renderDrinksList();
 
-            // Cloud Save
             await supabase.from('sessions').update({ custom_extras: sessions[currentDrinksSessionId].customExtras }).eq('id', currentDrinksSessionId);
         }
 
@@ -960,7 +971,6 @@
             sessions[currentDrinksSessionId].customExtras.splice(index, 1);
             renderDrinksList();
 
-            // Cloud Save
             await supabase.from('sessions').update({ custom_extras: sessions[currentDrinksSessionId].customExtras }).eq('id', currentDrinksSessionId);
         }
 
@@ -1154,7 +1164,6 @@
             financialData.push(record);
             updateFinanceUI();
 
-            // Cloud Save Record Entry securely
             await supabase.from('financial_data').insert([{
                 id: recordId,
                 date: dateStr,
@@ -1264,6 +1273,7 @@
                 btn.style.backgroundColor = 'var(--accent-purple)';
                 btn.style.border = 'none';
             }
+            
         }
     </script>
 </body>
