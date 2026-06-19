@@ -469,8 +469,8 @@
         const SUPABASE_URL = 'https://toqgbzzxzauibunmwbow.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcWdienp4emF1aWJ1bm13Ym93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3OTA0NDksImV4cCI6MjA5NzM2NjQ0OX0.6VgRp3jtkdIhafJm7PXmH8Xh7Pql7LbI8f1ioSXQgYI';
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
         const USERS = {
             'body808ab': 'body',
             'adminaa123': 'kareem'
